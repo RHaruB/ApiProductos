@@ -16,13 +16,15 @@ namespace Domain.Services
     {
         private readonly InventarioContext _context;
         private readonly IAesEncryptionService _encripta;
-        public UsuarioService(InventarioContext context, IAesEncryptionService encripta)
+        private readonly IJwtService _jwtService;
+        public UsuarioService(InventarioContext context, IAesEncryptionService encripta , IJwtService jwtService)
         {
             _context = context;
             _encripta = encripta;
+            _jwtService = jwtService;
         }
 
-        public async Task<UsuarioDTO> Loggin(string usuario , string contrasena )
+        public async Task<UsuarioResponseDTO> Loggin(string usuario , string contrasena )
         {
             var usuarioEncontrado = await _context.Usuarios
                                                    .Where(u =>
@@ -34,12 +36,12 @@ namespace Domain.Services
             if (usuarioEncontrado == null)
                 return null;
 
-            return new UsuarioDTO
+            return new UsuarioResponseDTO
             {
                 Usuario = usuarioEncontrado.Usuario1,
                 Nombre = usuarioEncontrado.Nombre,
                 Activo = usuarioEncontrado.Activo,
-
+                Token = _jwtService.GenerateToken(usuarioEncontrado.Id)
             };
         }
 

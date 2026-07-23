@@ -29,9 +29,9 @@ namespace ApiProductos.Controllers
 
         [HttpPost]
         [Route("login")]
-        public async Task<IActionResult> Loggin([FromBody] Models.UsuarioDTO usuario)
+        public async Task<IActionResult> Loggin([FromBody] Models.LogginDTO usuario)
         {
-            var usuarioEncontrado = await _usuarioService.Loggin(usuario.Usuario, usuario.PasswordHash);
+            var usuarioEncontrado = await _usuarioService.Loggin(usuario.Usuario, usuario.Contrasena);
             if (usuarioEncontrado == null)
             {
                 return Unauthorized(new { mensaje = "Usuario o contraseña incorrectos" });

@@ -37,8 +37,10 @@ configuration.GetSection("Security").Bind(securitySettings);
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
 
-builder.Services.AddScoped<IUsuarioService, UsuarioService>(); 
-builder.Services.AddScoped<IAesEncryptionService, AesEncryptionService>();
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+// Inyección de dependencias - Servicios de Seguridad
+builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
+builder.Services.AddSingleton<IJwtService, JwtService>();
 
 builder.Services.AddCors(options =>
 {
