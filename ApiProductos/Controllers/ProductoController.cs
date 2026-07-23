@@ -59,5 +59,20 @@ namespace ApiProductos.Controllers
             _logger.LogWarning("Fallo al crear producto con código {Codigo}. Razón: {Mensaje}", producto.Codigo, mensaje);
             return BadRequest(new { mensaje });
         }
+
+        [HttpPut]
+        [Route("actualizar/{id}")]
+        public async Task<IActionResult> Actualizar(int id, [FromBody] ProductoDTO producto)
+        {
+            _logger.LogInformation("Petición PUT recibida en api/producto/actualizar/{Id}.", id);
+            var (exito, mensaje) = await _productoService.ActualizarProducto(id, producto);
+            if (!exito)
+            {
+                _logger.LogWarning("Fallo al actualizar producto {Id}. Razón: {Mensaje}", id, mensaje);
+                return BadRequest(new { mensaje });
+            }
+            _logger.LogInformation("Producto {Id} actualizado exitosamente.", id);
+            return Ok(new { mensaje });
+        }
     }
 }

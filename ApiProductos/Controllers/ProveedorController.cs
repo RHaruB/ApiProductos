@@ -59,5 +59,20 @@ namespace ApiProductos.Controllers
             }
             return Ok(proveedor);
         }
+
+        [HttpPut]
+        [Route("actualizar/{id}")]
+        public async Task<IActionResult> Actualizar(int id, [FromBody] ProveedorDTO proveedor)
+        {
+            _logger.LogInformation("Petición PUT recibida en api/proveedor/actualizar/{Id}.", id);
+            var (exito, mensaje) = await _proveedorService.ActualizarProveedor(id, proveedor);
+            if (!exito)
+            {
+                _logger.LogWarning("Fallo al actualizar proveedor {Id}. Razón: {Mensaje}", id, mensaje);
+                return BadRequest(new { mensaje });
+            }
+            _logger.LogInformation("Proveedor {Id} actualizado exitosamente.", id);
+            return Ok(new { mensaje });
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Models;
+using Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +12,6 @@ namespace Application.Contrato
         IQueryable<LoteDTO> GetAll();
         Task<LoteDTO> GetById(int id);
         Task<(int id, string mensaje)> CrearLote(LoteDTO lote);
+        Task<(bool exito, string mensaje)> ActualizarLote(int id, LoteDTO lote);
     }
 }

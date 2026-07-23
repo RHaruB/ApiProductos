@@ -58,5 +58,20 @@ namespace ApiProductos.Controllers
             _logger.LogInformation("Lote número {NumeroLote} creado exitosamente con ID {LoteId}.", lote.NumeroLote, resultado.id);
             return Ok(new { id = resultado.id, mensaje = resultado.mensaje });
         }
+
+        [HttpPut]
+        [Route("actualizar/{id}")]
+        public async Task<IActionResult> Actualizar(int id, [FromBody] LoteDTO lote)
+        {
+            _logger.LogInformation("Petición PUT recibida en api/lote/actualizar/{Id}.", id);
+            var (exito, mensaje) = await _loteService.ActualizarLote(id, lote);
+            if (!exito)
+            {
+                _logger.LogWarning("Fallo al actualizar lote {Id}. Razón: {Mensaje}", id, mensaje);
+                return BadRequest(new { mensaje });
+            }
+            _logger.LogInformation("Lote {Id} actualizado exitosamente.", id);
+            return Ok(new { mensaje });
+        }
     }
 }

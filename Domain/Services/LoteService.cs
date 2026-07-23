@@ -131,5 +131,53 @@ namespace Domain.Services
                 return (0, $"Error al crear el lote: {ex.Message}");
             }
         }
+
+        public async Task<(bool exito, string mensaje)> ActualizarLote(int id, LoteDTO lote)
+        {
+            _logger.LogInformation("Intentando actualizar lote con ID: {LoteId}", id);
+            try
+            {
+                var loteExistente = await _context.Lotes.FindAsync(id);
+                if (loteExistente == null)
+                {
+                    _logger.LogWarning("No se pudo actualizar. Lote con ID {LoteId} no existe.", id);
+                    return (false, "Lote no encontrado.");
+                }
+
+                // Validar que exista el producto
+                bool existeProducto = await _context.Productos.AnyAsync(p => p.Id == lote.ProductoId && p.Activo);
+                if (!existeProducto)
+                {
+                    _logger.LogWarning("Fallo al actualizar lote: El producto con ID {ProductoId} no existe o está inactivo.", lote.ProductoId);
+                    return (false, "El producto seleccionado no existe o está inactivo.");
+                }
+
+                // Validar que exista el proveedor
+                bool existeProveedor = await _context.Proveedores.AnyAsync(p => p.Id == lote.ProveedorId && p.Activo);
+                if (!existeProveedor)
+                {
+                    _logger.LogWarning("Fallo al actualizar lote: El proveedor con ID {ProveedorId} no existe o está inactivo.", lote.ProveedorId);
+                    return (false, "El proveedor seleccionado no existe o está inactivo.");
+                }
+
+                loteExistente.ProductoId = lote.ProductoId;
+                loteExistente.ProveedorId = lote.ProveedorId;
+                loteExistente.NumeroLote = lote.NumeroLote;
+                loteExistente.PrecioCompra = lote.PrecioCompra;
+                loteExistente.PrecioVenta = lote.PrecioVenta;
+                loteExistente.Stock = lote.Stock;
+                loteExistente.Activo = lote.Activo;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Lote con ID {LoteId} actualizado exitosamente.", id);
+                return (true, "Lote actualizado exitosamente.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar el lote con ID: {LoteId}", id);
+                return (false, $"Error al actualizar el lote: {ex.Message}");
+            }
+        }
     }
 }
