@@ -38,6 +38,9 @@ builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
 
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddScoped<IProductoService, ProductoService>();
+builder.Services.AddScoped <IProveedorService, ProveedorService>();
+
 // Inyección de dependencias - Servicios de Seguridad
 builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
@@ -62,6 +65,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
