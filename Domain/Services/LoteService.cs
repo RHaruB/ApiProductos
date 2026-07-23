@@ -1,6 +1,7 @@
-﻿using Application.Contrato;
+using Application.Contrato;
 using Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Models;
 using System;
 using System.Collections.Generic;
@@ -13,14 +14,17 @@ namespace Domain.Services
     public class LoteService: ILoteService
     {
         private readonly InventarioContext _context;
+        private readonly ILogger<LoteService> _logger;
 
-        public LoteService(InventarioContext context)
+        public LoteService(InventarioContext context, ILogger<LoteService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public IQueryable<LoteDTO> GetAll()
         {
+            _logger.LogInformation("Consultando todos los lotes.");
             return _context.Lotes
                 .Select(l => new LoteDTO
                 {
@@ -39,10 +43,16 @@ namespace Domain.Services
                     FechaCreacion = l.FechaIngreso
                 });
         }
+        
         public async Task<LoteDTO> GetById(int id)
         {
+            _logger.LogInformation("Consultando lote con ID: {LoteId}", id);
             var lote = await _context.Lotes.FindAsync(id);
-            if (lote == null) return null;
+            if (lote == null)
+            {
+                _logger.LogWarning("Lote con ID {LoteId} no encontrado.", id);
+                return null;
+            }
             return new LoteDTO
             {
                 Id = lote.Id,
@@ -56,8 +66,11 @@ namespace Domain.Services
                 FechaCreacion = lote.FechaIngreso
             };
         }
+        
         public async Task<(int id, string mensaje)> CrearLote(LoteDTO lote)
         {
+            _logger.LogInformation("Intentando crear lote. ProductoId: {ProductoId}, ProveedorId: {ProveedorId}, Número de Lote: {NumeroLote}", 
+                lote.ProductoId, lote.ProveedorId, lote.NumeroLote);
             try
             {
                 // Validar que exista el producto
@@ -65,14 +78,20 @@ namespace Domain.Services
                     .AnyAsync(p => p.Id == lote.ProductoId && p.Activo);
 
                 if (!existeProducto)
+                {
+                    _logger.LogWarning("Fallo al crear lote: El producto con ID {ProductoId} no existe o está inactivo.", lote.ProductoId);
                     return (0, "El producto no existe o está inactivo.");
+                }
 
                 // Validar que exista el proveedor
                 bool existeProveedor = await _context.Proveedores
                     .AnyAsync(p => p.Id == lote.ProveedorId && p.Activo);
 
                 if (!existeProveedor)
+                {
+                    _logger.LogWarning("Fallo al crear lote: El proveedor con ID {ProveedorId} no existe o está inactivo.", lote.ProveedorId);
                     return (0, "El proveedor no existe o está inactivo.");
+                }
 
                 // Validar que no exista el mismo lote
                 bool existeLote = await _context.Lotes.AnyAsync(l =>
@@ -81,7 +100,11 @@ namespace Domain.Services
                     l.NumeroLote == lote.NumeroLote);
 
                 if (existeLote)
+                {
+                    _logger.LogWarning("Fallo al crear lote: Ya existe un lote con número {NumeroLote} para ProductoId {ProductoId} y ProveedorId {ProveedorId}.", 
+                        lote.NumeroLote, lote.ProductoId, lote.ProveedorId);
                     return (0, "Ya existe un lote con ese número para el producto y proveedor seleccionados.");
+                }
 
                 var nuevoLote = new Lote
                 {
@@ -98,10 +121,13 @@ namespace Domain.Services
                 _context.Lotes.Add(nuevoLote);
                 await _context.SaveChangesAsync();
 
+                _logger.LogInformation("Lote creado exitosamente con ID: {LoteId}", nuevoLote.Id);
                 return (nuevoLote.Id, "Lote creado exitosamente.");
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error al crear el lote. ProductoId: {ProductoId}, ProveedorId: {ProveedorId}, Número de Lote: {NumeroLote}", 
+                    lote.ProductoId, lote.ProveedorId, lote.NumeroLote);
                 return (0, $"Error al crear el lote: {ex.Message}");
             }
         }

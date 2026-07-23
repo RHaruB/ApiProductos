@@ -2,30 +2,38 @@ using Application.Contrato;
 using Domain.Utils;
 using Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Domain.Services
 {
-    public class UsuarioService :IUsuarioService
+    public class UsuarioService : IUsuarioService
     {
         private readonly InventarioContext _context;
         private readonly IAesEncryptionService _encripta;
         private readonly IJwtService _jwtService;
-        public UsuarioService(InventarioContext context, IAesEncryptionService encripta , IJwtService jwtService)
+        private readonly ILogger<UsuarioService> _logger;
+
+        public UsuarioService(
+            InventarioContext context, 
+            IAesEncryptionService encripta, 
+            IJwtService jwtService,
+            ILogger<UsuarioService> logger)
         {
             _context = context;
             _encripta = encripta;
             _jwtService = jwtService;
+            _logger = logger;
         }
 
-        public async Task<UsuarioResponseDTO> Loggin(string usuario , string contrasena )
+        public async Task<UsuarioResponseDTO> Loggin(string usuario, string contrasena)
         {
+            _logger.LogInformation("Intentando iniciar sesión para el usuario: {Usuario}", usuario);
+
             var usuarioEncontrado = await _context.Usuarios
                                                    .Where(u =>
                                                        u.Usuario1 == usuario &&
@@ -34,7 +42,12 @@ namespace Domain.Services
                                                      ).FirstOrDefaultAsync();
 
             if (usuarioEncontrado == null)
+            {
+                _logger.LogWarning("Inicio de sesión fallido para el usuario: {Usuario}. Credenciales incorrectas o usuario inactivo.", usuario);
                 return null;
+            }
+
+            _logger.LogInformation("Inicio de sesión exitoso para el usuario: {Usuario}. Generando token JWT.", usuario);
 
             return new UsuarioResponseDTO
             {
@@ -47,21 +60,25 @@ namespace Domain.Services
 
         public async Task<(int id, string mensaje)> CrearUsuario(UsuarioDTO usuario)
         {
+            _logger.LogInformation("Iniciando creación de usuario con nombre de usuario: {Usuario}", usuario.Usuario);
             try
             {
                 string validarionErrores = ValidarUsuarioRequest(usuario);
 
                 if (validarionErrores.Length > 0)
                 {
+                    _logger.LogWarning("Fallo en la validación del request al crear usuario: {Errores}", validarionErrores);
                     return (0, validarionErrores);
                 }
 
                 var existeNombre = await ValidarUsuarioExistente(usuario.Usuario);
 
-                if (existeNombre.Length > 0 )
+                if (existeNombre.Length > 0)
                 {
-                    return (0, string.Join(", ", new[] { existeNombre }.Where(e => e.Length > 0)));
+                    _logger.LogWarning("Fallo al crear usuario: El nombre de usuario {Usuario} ya existe.", usuario.Usuario);
+                    return (0, existeNombre);
                 }
+
                 Usuario userDB = new Usuario
                 {
                     Nombre = usuario.Nombre,
@@ -71,34 +88,31 @@ namespace Domain.Services
                     FechaCreacion = DateTime.Now
                 };
 
-                var registrarUsuario = await _context.Usuarios.AddAsync (userDB);
+                await _context.Usuarios.AddAsync(userDB);
                 await _context.SaveChangesAsync();  
 
                 int idGenerado = userDB.Id; 
+                _logger.LogInformation("Usuario creado correctamente con ID: {UsuarioId}", idGenerado);
 
                 return (idGenerado, "Usuario creado correctamente");
-
-
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error en CrearUsuario: {ex}");
+                _logger.LogError(ex, "Error inesperado al crear usuario {Usuario}", usuario.Usuario);
                 return (0, "Ocurrió un error inesperado al procesar la solicitud.");
             }
-
         }
-
 
         public static string ValidarUsuarioRequest(UsuarioDTO usuarioRequest, bool editar = false, bool actualizarConstrasena = true)
         {
             var errores = new List<string>();
-            if (editar && usuarioRequest.Id <= 0)
-            {
-                errores.Add("El campo Id es requerido para la edición");
-            }
             if (usuarioRequest == null)
             {
                 return "El objeto UsuarioRequest no puede ser nulo";
+            }
+            if (editar && usuarioRequest.Id <= 0)
+            {
+                errores.Add("El campo Id es requerido para la edición");
             }
             if (string.IsNullOrWhiteSpace(usuarioRequest.Usuario))
             {
@@ -118,7 +132,6 @@ namespace Domain.Services
 
         private async Task<string> ValidarUsuarioExistente(string Username, int? UsuarioIDExcluir = null)
         {
-            var parameter = new { Username, UsuarioIDExcluir };
             try
             {
                 var existe = await _context.Usuarios.Where(s => s.Usuario1 == Username).AnyAsync();
@@ -133,11 +146,9 @@ namespace Domain.Services
             }
             catch (Exception ex)
             {
-
+                _logger.LogError(ex, "Error al validar si el usuario {Usuario} existe en la base de datos.", Username);
                 throw;
             }
-
         }
-
     }
 }

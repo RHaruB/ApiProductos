@@ -3,72 +3,114 @@ using Domain.Services;
 using Domain.Utils;
 using Infrastructure.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Models.Utils;
+using Serilog;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-
-// Configuraci髇 de AppSettings
-ConfigurationManager configuration = builder.Configuration;
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddDbContext<InventarioContext>(options =>
+try
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CadenaSQL"));
-});
+    Log.Information("Iniciando la API de Productos...");
+    var builder = WebApplication.CreateBuilder(args);
 
-// Configuraci髇 de SecuritySettings
-builder.Services.Configure<SecuritySettings>(configuration.GetSection("Security"));
-SecuritySettings securitySettings = new();
-configuration.GetSection("Security").Bind(securitySettings);
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext());
 
+    // Configuraci贸n de AppSettings
+    ConfigurationManager configuration = builder.Configuration;
 
-//Configuraci髇 de servicios
-builder.Services.AddRouting(options => options.LowercaseUrls = true);
+    // Add services to the container.
+    builder.Services.AddControllers();
 
+    // Personalizar respuesta de error de validaci贸n de modelo
+    builder.Services.Configure<ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            var errors = context.ModelState
+                .Where(e => e.Value != null && e.Value.Errors.Count > 0)
+                .SelectMany(x => x.Value!.Errors.Select(y => y.ErrorMessage))
+                .ToList();
 
-builder.Services.AddScoped<IUsuarioService, UsuarioService>();
-builder.Services.AddScoped<IProductoService, ProductoService>();
-builder.Services.AddScoped <IProveedorService, ProveedorService>();
-builder.Services.AddScoped <ILoteService, LoteService>();
+            var errorMessage = string.Join(" | ", errors);
+            var requestPath = context.HttpContext.Request.Path;
 
-// Inyecci髇 de dependencias - Servicios de Seguridad
-builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
-builder.Services.AddSingleton<IJwtService, JwtService>();
+            logger.LogWarning("Fallo de validaci贸n de modelo en {Path}: {Errors}", requestPath, errorMessage);
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        builder => builder
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
+            return new BadRequestObjectResult(new { mensaje = string.Join(", ", errors) });
+        };
+    });
 
-var app = builder.Build();
+    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    builder.Services.AddDbContext<InventarioContext>(options =>
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("CadenaSQL"));
+    });
+
+    // Configuraci贸n de SecuritySettings
+    builder.Services.Configure<SecuritySettings>(configuration.GetSection("Security"));
+    SecuritySettings securitySettings = new();
+    configuration.GetSection("Security").Bind(securitySettings);
+
+    // Configuraci贸n de servicios
+    builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
+    builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+    builder.Services.AddScoped<IProductoService, ProductoService>();
+    builder.Services.AddScoped<IProveedorService, ProveedorService>();
+    builder.Services.AddScoped<ILoteService, LoteService>();
+
+    // Inyecci贸n de dependencias - Servicios de Seguridad
+    builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
+    builder.Services.AddSingleton<IJwtService, JwtService>();
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowAll",
+            builder => builder
+                .AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+    });
+
+    var app = builder.Build();
+
+    app.UseSerilogRequestLogging();
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    app.Run();
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "La aplicaci贸n termin贸 inesperadamente");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
