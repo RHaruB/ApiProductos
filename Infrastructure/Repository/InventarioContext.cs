@@ -15,8 +15,6 @@ public partial class InventarioContext : DbContext
     {
     }
 
-    public virtual DbSet<Categoria> Categorias { get; set; }
-
     public virtual DbSet<Lote> Lotes { get; set; }
 
     public virtual DbSet<MovimientosInventario> MovimientosInventarios { get; set; }
@@ -28,22 +26,11 @@ public partial class InventarioContext : DbContext
     public virtual DbSet<Usuario> Usuarios { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) { }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Categoria>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Categori__3214EC0785311845");
-
-            entity.HasIndex(e => e.Nombre, "UX_Categorias_Nombre").IsUnique();
-
-            entity.Property(e => e.Activo).HasDefaultValue(true);
-            entity.Property(e => e.Nombre).HasMaxLength(100);
-        });
-
         modelBuilder.Entity<Lote>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Lotes__3214EC0731006EC4");
+            entity.HasKey(e => e.Id).HasName("PK__Lotes__3214EC075EA17E00");
 
             entity.HasIndex(e => e.FechaIngreso, "IX_Lotes_FechaIngreso");
 
@@ -76,7 +63,7 @@ public partial class InventarioContext : DbContext
 
         modelBuilder.Entity<MovimientosInventario>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Movimien__3214EC078A164B28");
+            entity.HasKey(e => e.Id).HasName("PK__Movimien__3214EC07C500620E");
 
             entity.ToTable("MovimientosInventario");
 
@@ -108,9 +95,7 @@ public partial class InventarioContext : DbContext
 
         modelBuilder.Entity<Producto>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Producto__3214EC076FB7FCC1");
-
-            entity.HasIndex(e => e.CategoriaId, "IX_Productos_Categoria");
+            entity.HasKey(e => e.Id).HasName("PK__Producto__3214EC07A16AB480");
 
             entity.HasIndex(e => e.Nombre, "IX_Productos_Nombre");
 
@@ -118,36 +103,25 @@ public partial class InventarioContext : DbContext
 
             entity.Property(e => e.Activo).HasDefaultValue(true);
             entity.Property(e => e.Codigo).HasMaxLength(30);
-            entity.Property(e => e.Descripcion).HasMaxLength(500);
             entity.Property(e => e.FechaCreacion)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.Nombre).HasMaxLength(150);
-
-            entity.HasOne(d => d.Categoria).WithMany(p => p.Productos)
-                .HasForeignKey(d => d.CategoriaId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Productos_Categorias");
         });
 
         modelBuilder.Entity<Proveedore>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Proveedo__3214EC078642FF9E");
-
-            entity.HasIndex(e => e.Email, "IX_Proveedores_Email");
+            entity.HasKey(e => e.Id).HasName("PK__Proveedo__3214EC07AB919D68");
 
             entity.HasIndex(e => e.Nombre, "UX_Proveedores_Nombre").IsUnique();
 
             entity.Property(e => e.Activo).HasDefaultValue(true);
-            entity.Property(e => e.Direccion).HasMaxLength(250);
-            entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.Nombre).HasMaxLength(150);
-            entity.Property(e => e.Telefono).HasMaxLength(30);
         });
 
         modelBuilder.Entity<Usuario>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Usuarios__3214EC072038873E");
+            entity.HasKey(e => e.Id).HasName("PK__Usuarios__3214EC07C4A6F01C");
 
             entity.HasIndex(e => e.Usuario1, "UX_Usuarios_Usuario").IsUnique();
 
