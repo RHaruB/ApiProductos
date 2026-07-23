@@ -9,7 +9,7 @@ namespace Application.Contrato
 {
     public interface IUsuarioService
     {
-        public Task<UsuarioResponseDTO> Loggin(string usuario, string contrasena);
+        Task<UsuarioResponseDTO> Loggin(string usuario, string contrasena);
 
         Task<(int id, string mensaje)> CrearUsuario(UsuarioDTO usuarioRequest);
     }

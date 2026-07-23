@@ -8,9 +8,9 @@ namespace Application.Contrato
 {
     public interface IProveedorService
     {
-        public IQueryable<Models.ProveedorDTO> GetAll();
-        public Task<Models.ProveedorDTO> GetById(int id);
-        public Task<(int id, string mensaje)> CrearProveedor(Models.ProveedorDTO proveedor);
-        public Task<(bool exito, string mensaje)> ActualizarProveedor(int id, Models.ProveedorDTO proveedor);
+         IQueryable<Models.ProveedorDTO> GetAll();
+         Task<Models.ProveedorDTO> GetById(int id);
+         Task<(int id, string mensaje)> CrearProveedor(Models.ProveedorDTO proveedor);
+         Task<(bool exito, string mensaje)> ActualizarProveedor(int id, Models.ProveedorDTO proveedor);
     }
 }

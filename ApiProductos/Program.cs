@@ -40,6 +40,7 @@ builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped <IProveedorService, ProveedorService>();
+builder.Services.AddScoped <ILoteService, LoteService>();
 
 // Inyección de dependencias - Servicios de Seguridad
 builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
