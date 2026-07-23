@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
+using System.Threading.Tasks;
 
 namespace ApiProductos.Controllers
 {
@@ -46,17 +47,17 @@ namespace ApiProductos.Controllers
 
         [HttpPost]
         [Route("crear")]
-        public IActionResult Crear([FromBody] ProductoDTO producto)
+        public async Task<IActionResult> Crear([FromBody] ProductoDTO producto)
         {
             _logger.LogInformation("Petición POST recibida en api/producto/crear para producto con código: {Codigo}", producto.Codigo);
-            var resultado = _productoService.CrearProducto(producto);
-            if (resultado != null)
+            var (id, mensaje) = await _productoService.CrearProducto(producto);
+            if (id > 0)
             {
-                _logger.LogInformation("Producto con código {Codigo} creado exitosamente.", producto.Codigo);
-                return Ok(new { mensaje = "Producto creado exitosamente", id = producto.Id });
+                _logger.LogInformation("Producto con código {Codigo} creado exitosamente con ID: {Id}.", producto.Codigo, id);
+                return Ok(new { mensaje = "Producto creado exitosamente", id });
             }
-            _logger.LogWarning("Fallo al crear producto con código {Codigo}.", producto.Codigo);
-            return BadRequest(new { mensaje = "Error al crear el producto" });
+            _logger.LogWarning("Fallo al crear producto con código {Codigo}. Razón: {Mensaje}", producto.Codigo, mensaje);
+            return BadRequest(new { mensaje });
         }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
+using System.Threading.Tasks;
 
 namespace ApiProductos.Controllers
 {
@@ -32,17 +33,17 @@ namespace ApiProductos.Controllers
 
         [HttpPost]
         [Route("crear")]
-        public IActionResult Crear([FromBody] ProveedorDTO proveedor)
+        public async Task<IActionResult> Crear([FromBody] ProveedorDTO proveedor)
         {
             _logger.LogInformation("Petición POST recibida en api/proveedor/crear para proveedor: {Nombre}", proveedor.Nombre);
-            var resultado = _proveedorService.CrearProveedor(proveedor);
-            if (resultado != null)
+            var (id, mensaje) = await _proveedorService.CrearProveedor(proveedor);
+            if (id > 0)
             {
-                _logger.LogInformation("Proveedor {Nombre} creado exitosamente.", proveedor.Nombre);
-                return Ok(new { mensaje = "Proveedor creado exitosamente", id = proveedor.Id });
+                _logger.LogInformation("Proveedor {Nombre} creado exitosamente con ID: {Id}.", proveedor.Nombre, id);
+                return Ok(new { mensaje = "Proveedor creado exitosamente", id });
             }
-            _logger.LogWarning("Fallo al crear proveedor con nombre {Nombre}.", proveedor.Nombre);
-            return BadRequest(new { mensaje = "Error al crear el proveedor" });
+            _logger.LogWarning("Fallo al crear proveedor con nombre {Nombre}. Razón: {Mensaje}", proveedor.Nombre, mensaje);
+            return BadRequest(new { mensaje });
         }
 
         [HttpGet]
